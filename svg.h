@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace svg {
 
@@ -73,8 +74,7 @@ public:
 
 private:
     void RenderObject(const RenderContext& context) const override;
-
-    Point center_;
+    Point center_ = {0.0,0.0};
     double radius_ = 1.0;
 };
 
@@ -82,9 +82,10 @@ private:
  * Класс Polyline моделирует элемент <polyline> для отображения ломаных линий
  * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline
  */
-class Polyline {
+class Polyline final : public Object{
+    std::vector<Point> points_;
+    void RenderObject(const RenderContext& context) const override;
 public:
-    // Добавляет очередную вершину к ломаной линии
     Polyline& AddPoint(Point point);
 
     /*
@@ -96,45 +97,31 @@ public:
  * Класс Text моделирует элемент <text> для отображения текста
  * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
  */
-class Text {
+class Text final : public Object {
+    Point pos_ = {0.0,0.0};
+    Point offset_ = {0.0,0.0};
+    uint32_t size_ = 1;
+    std::string font_family_ = "";
+    std::string font_weight_ = "";
+    std::string data_ = "";
+    void RenderObject(const RenderContext& context) const override;
 public:
-    // Задаёт координаты опорной точки (атрибуты x и y)
     Text& SetPosition(Point pos);
-
-    // Задаёт смещение относительно опорной точки (атрибуты dx, dy)
     Text& SetOffset(Point offset);
-
-    // Задаёт размеры шрифта (атрибут font-size)
     Text& SetFontSize(uint32_t size);
-
-    // Задаёт название шрифта (атрибут font-family)
     Text& SetFontFamily(std::string font_family);
-
-    // Задаёт толщину шрифта (атрибут font-weight)
     Text& SetFontWeight(std::string font_weight);
-
-    // Задаёт текстовое содержимое объекта (отображается внутри тега text)
     Text& SetData(std::string data);
-
-    // Прочие данные и методы, необходимые для реализации элемента <text>
 };
 
 class Document {
+    std::vector<std::unique_ptr<Object>> objects_;
 public:
-    /*
-     Метод Add добавляет в svg-документ любой объект-наследник svg::Object.
-     Пример использования:
-     Document doc;
-     doc.Add(Circle().SetCenter({20, 30}).SetRadius(15));
-    */
-    // void Add(???);
-
-    // Добавляет в svg-документ объект-наследник svg::Object
+    Document() = default;
     void AddPtr(std::unique_ptr<Object>&& obj);
-
+    void Add(Object& obj);
     // Выводит в ostream svg-представление документа
     void Render(std::ostream& out) const;
-
     // Прочие методы и данные, необходимые для реализации класса Document
 };
 
