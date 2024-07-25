@@ -2,8 +2,8 @@
 
 namespace svg
 {
-
     using namespace std::literals;
+    using util::SwapSpecSymbols;
 
     void Object::Render(const RenderContext &context) const
     {
@@ -92,10 +92,12 @@ namespace svg
         data_ = std::move(data);
         return *this;
     }
-    void Text::RenderObject(const RenderContext& context) const {
+    void Text::RenderObject(const RenderContext &context) const
+    {
         auto &out = context.out;
-        out << "<text x=\""<<pos_.x <<"\" y=\""<<pos_.y <<"\" dx=\""<<offset_.x <<"\" dy=\""<<offset_.y <<"\" ";
-        out<<"font-size=\""
+        out << "<text x=\"" << pos_.x << "\" y=\"" << pos_.y << "\" dx=\"" << offset_.x << "\" dy=\"" << offset_.y << "\" ";
+        out << "font-size=\"" << size_ << "\" font-family=\"" << font_family_ << "\" font-weight=\"" << font_weight_ << "\\>";
+        out << SwapSpecSymbols(data_) << "</text>";
     }
 
     // ---------- Document ------------------
