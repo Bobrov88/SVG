@@ -114,9 +114,10 @@ namespace svg
 
     void Document::Render(std::ostream &out) const
     {
+        RenderContext ctx(out);
         for (const auto &obj : objects_)
         {
-            obj->Render(out);
+            obj->Render(ctx);
         }
     }
 
