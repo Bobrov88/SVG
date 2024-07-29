@@ -3,7 +3,6 @@
 namespace svg
 {
     using namespace std::literals;
-    using util::SwapSpecSymbols;
 
     void Object::Render(const RenderContext &context) const
     {
@@ -37,12 +36,20 @@ namespace svg
         out << "/>"sv;
     }
 
+    Circle::~Circle()
+    {
+    }
+
     // ---------- Polyline ------------------
 
     Polyline &Polyline::AddPoint(Point point)
     {
         points_.push_back(std::move(point));
         return *this;
+    }
+
+    Polyline::~Polyline()
+    {
     }
 
     void Polyline::RenderObject(const RenderContext &context) const
@@ -96,20 +103,30 @@ namespace svg
     {
         auto &out = context.out;
         out << "<text x=\"" << pos_.x << "\" y=\"" << pos_.y << "\" dx=\"" << offset_.x << "\" dy=\"" << offset_.y << "\" ";
-        out << "font-size=\"" << size_ << "\" font-family=\"" << font_family_ << "\" font-weight=\"" << font_weight_ << "\\>";
-        out << SwapSpecSymbols(data_) << "</text>";
+        out << "font-size=\"" << size_ << "\" font-family=\"" << font_family_ << "\" font-weight=\"" << font_weight_ << "\">";
+        out << util::SwapSpecSymbols(data_) << "</text>";
+    }
+
+    Text::~Text()
+    {
     }
 
     // ---------- Document ------------------
 
     void Document::AddPtr(std::unique_ptr<Object> &&obj)
     {
-        objects_.push_back(std::move(obj));
+        objects_.emplace_back(std::move(obj));
+    }
+
+    void Document::Add(Object &&obj)
+    {
+        std::unique_ptr<Object> tmp{&obj};
+        AddPtr(std::move(tmp));
     }
 
     void Document::Add(Object &obj)
     {
-        AddPtr(std::make_unique<Object>(obj));
+        Add(std::move(obj));
     }
 
     void Document::Render(std::ostream &out) const
@@ -122,3 +139,37 @@ namespace svg
     }
 
 } // namespace svg
+
+namespace util
+{
+    std::string SwapSpecSymbols(const std::string &data_)
+    {
+        std::string result;
+        result.reserve(data_.size() * 1.5);
+        for (const char c : data_)
+        {
+            switch (c)
+            {
+            case '&':
+                result.append("&amp;");
+                break;
+            case '<':
+                result.append("&lt;");
+                break;
+            case '>':
+                result.append("&gt;");
+                break;
+            case '\"':
+                result.append("&quot;");
+                break;
+            case '\'':
+                result.append("&apos;");
+                break;
+            default:
+                result.push_back(c);
+                break;
+            }
+        }
+        return result;
+    }
+}

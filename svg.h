@@ -76,14 +76,14 @@ namespace svg
      */
     class Circle final : public Object
     {
-    public:
-        Circle &SetCenter(Point center);
-        Circle &SetRadius(double radius);
-
-    private:
         void RenderObject(const RenderContext &context) const override;
         Point center_ = {0.0, 0.0};
         double radius_ = 1.0;
+
+    public:
+        Circle &SetCenter(Point center);
+        Circle &SetRadius(double radius);
+        ~Circle() override;
     };
 
     /*
@@ -97,7 +97,7 @@ namespace svg
 
     public:
         Polyline &AddPoint(Point point);
-
+        ~Polyline() override;
         /*
          * Прочие методы и данные, необходимые для реализации элемента <polyline>
          */
@@ -116,6 +116,7 @@ namespace svg
         std::string font_weight_ = "";
         std::string data_ = "";
         void RenderObject(const RenderContext &context) const override;
+
     public:
         Text &SetPosition(Point pos);
         Text &SetOffset(Point offset);
@@ -123,6 +124,7 @@ namespace svg
         Text &SetFontFamily(std::string font_family);
         Text &SetFontWeight(std::string font_weight);
         Text &SetData(std::string data);
+        ~Text() override;
     };
 
     class Document
@@ -132,24 +134,14 @@ namespace svg
     public:
         Document() = default;
         void AddPtr(std::unique_ptr<Object> &&obj);
+        void Add(Object &&obj);
         void Add(Object &obj);
-        // Выводит в ostream svg-представление документа
         void Render(std::ostream &out) const;
-        // Прочие методы и данные, необходимые для реализации класса Document
     };
 
 } // namespace svg
 
 namespace util
 {
-    std::string SwapSpecSymbols(const std::string &data_)
-    {
-        std::string quoted_string {data_.cbegin(), data_.cend()};
-        quoted_string = quoted_string.replace(quoted_string.begin(), quoted_string.end(), "&", "&amp;");
-        quoted_string = quoted_string.replace(quoted_string.begin(), quoted_string.end(), "\"", "&quot;");
-        quoted_string = quoted_string.replace(quoted_string.begin(), quoted_string.end(), "'", "&apos;");
-        quoted_string = quoted_string.replace(quoted_string.begin(), quoted_string.end(), "<", "&lt;");
-        quoted_string = quoted_string.replace(quoted_string.begin(), quoted_string.end(), ">", "&gt;");
-        return quoted_string;
-    }
+    std::string SwapSpecSymbols(const std::string &data_);
 }

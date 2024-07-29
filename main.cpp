@@ -62,5 +62,6 @@ int main() {
     RenderContext ctx(std::cout, 2, 2);
     c.Render(ctx);
 
+        DrawPicture();
     std::cout << "</svg>"sv;
 }
