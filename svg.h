@@ -63,7 +63,6 @@ namespace svg
     {
     public:
         void Render(const RenderContext &context) const;
-
         virtual ~Object() = default;
 
     private:
@@ -81,6 +80,7 @@ namespace svg
         double radius_ = 1.0;
 
     public:
+        Circle() = default;
         Circle &SetCenter(Point center);
         Circle &SetRadius(double radius);
         ~Circle() override;
@@ -96,6 +96,7 @@ namespace svg
         void RenderObject(const RenderContext &context) const override;
 
     public:
+        Polyline() = default;
         Polyline &AddPoint(Point point);
         ~Polyline() override;
         /*
@@ -118,6 +119,7 @@ namespace svg
         void RenderObject(const RenderContext &context) const override;
 
     public:
+        Text() = default;
         Text &SetPosition(Point pos);
         Text &SetOffset(Point offset);
         Text &SetFontSize(uint32_t size);
@@ -133,9 +135,16 @@ namespace svg
 
     public:
         Document() = default;
-        void AddPtr(std::unique_ptr<Object> &&obj);
-        void Add(Object &&obj);
-        void Add(Object &obj);
+        template <typename ObjType>
+        void AddPtr(std::unique_ptr<ObjType> &&obj)
+        {
+            objects_.emplace_back(std::move(obj));
+        }
+        template <typename ObjType>
+        void Add(ObjType obj)
+        {
+            objects_.emplace_back(std::make_unique<ObjType>(std::move(obj)));
+        }
         void Render(std::ostream &out) const;
     };
 

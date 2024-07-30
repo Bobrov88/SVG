@@ -113,22 +113,6 @@ namespace svg
 
     // ---------- Document ------------------
 
-    void Document::AddPtr(std::unique_ptr<Object> &&obj)
-    {
-        objects_.emplace_back(std::move(obj));
-    }
-
-    void Document::Add(Object &&obj)
-    {
-        std::unique_ptr<Object> tmp{&obj};
-        AddPtr(std::move(tmp));
-    }
-
-    void Document::Add(Object &obj)
-    {
-        Add(std::move(obj));
-    }
-
     void Document::Render(std::ostream &out) const
     {
         RenderContext ctx(out);
