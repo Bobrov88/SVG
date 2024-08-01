@@ -7,12 +7,82 @@
 #include <string>
 #include <vector>
 #include <string_view>
+#include <optional>
+
+using Color = std::string;
+inline const Color NoneColor{"none"};
 
 namespace svg
 {
+    enum class StrokeLineCap
+    {
+        BUTT,
+        ROUND,
+        SQUARE
+    };
+
+    std::ostream &operator<<(std::ostream &os, const StrokeLineCap &line_cap)
+    {
+        using namespace std::string_view_literals;
+        switch (line_cap)
+        {
+        case StrokeLineCap::BUTT:
+            os << "butt"sv;
+            break;
+        case StrokeLineCap::ROUND:
+            os << "round"sv;
+            break;
+        case StrokeLineCap::SQUARE:
+            os << "square"sv;
+            break;
+        default:
+            os << ""sv;
+            break;
+        }
+        return os;
+    }
+
+    enum class StrokeLineJoin
+    {
+        ARCS,
+        BEVEL,
+        MITER,
+        MITER_CLIP,
+        ROUND
+    };
+
+    std::ostream &operator<<(std::ostream &os, const StrokeLineJoin &line_cap)
+    {
+        using namespace std::string_view_literals;
+        switch (line_cap)
+        {
+        case StrokeLineJoin::ARCS:
+            os << "arcs"sv;
+            break;
+        case StrokeLineJoin::BEVEL:
+            os << "bevel"sv;
+            break;
+        case StrokeLineJoin::MITER:
+            os << "miter"sv;
+            break;
+        case StrokeLineJoin::MITER_CLIP:
+            os << "miter_clip"sv;
+            break;
+        case StrokeLineJoin::ROUND:
+            os << "round"sv;
+            break;
+        default:
+            os << ""sv;
+            break;
+        }
+        return os;
+    }
+
     class Drawable;
     class ObjectContainer;
     class Object;
+    template <typename Owner>
+    class PathProps;
 
     class Drawable
     {
@@ -78,6 +148,64 @@ namespace svg
         int indent = 0;
     };
 
+    template <typename Owner>
+    class PathProps
+    {
+        std::optional<Color> fill_color_;
+        std::optional<Color> stroke_color_;
+        std::optional<double> stroke_width_;
+        std::optional<StrokeLineCap> stroke_line_cap;
+        std::optional<StrokeLineJoin> stroke_line_join;
+        Owner &AsOwner()
+        {
+            return static_cast<Owner &>(*this);
+        }
+
+    public:
+        Owner &SetFillColor(Color color)
+        {
+            fill_color_ = std::move(color);
+            return AsOwner();
+        }
+        Owner &SetStrokeColor(Color color)
+        {
+            stroke_color_ = std::move(color);
+            return AsOwner();
+        }
+        Owner &SetStrokeWidth(double width)
+        {
+            stroke_width = width;
+            return AsOwner();
+        }
+        Owner &SetStrokeLineCap(StrokeLineCap line_cap)
+        {
+            stroke_line_cap_ = line_cap;
+            return AsOwner();
+        }
+        Owner &SetsTrokeLineJoin(StrokeLineJoin line_join)
+        {
+            stroke_line_join = line_join;
+            return AsOwner();
+        }
+        virtual ~PathProps() = default;
+
+    protected:
+        void RenderAttr(std::ostream &os) const
+        {
+            using namespace std::string_view_literals;
+            if (fill_color_)
+                os << " fill=\""sv << *fill_color_ << "\"";
+            if (stroke_color_)
+                os << " stroke=\""sv << *stroke_color_ << "\"";
+            if (stroke_width_)
+                os << " stroke-width=\"" << *stroke_width_ << "\"";
+            if (stroke_line_cap)
+                os << " stroke-linecap=\"" << *stroke_line_cap << "\"";
+            if (stroke_line_join)
+                os << " stroke-linejoin=\"" << *stroke_line_join << "\"";
+        }
+    };
+
     /*
      * Абстрактный базовый класс Object служит для унифицированного хранения
      * конкретных тегов SVG-документа
@@ -97,7 +225,7 @@ namespace svg
      * Класс Circle моделирует элемент <circle> для отображения круга
      * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle
      */
-    class Circle final : public Object
+    class Circle final : public Object, public PathProps<Circle>
     {
         void RenderObject(const RenderContext &context) const override;
         Point center_ = {0.0, 0.0};
@@ -114,7 +242,7 @@ namespace svg
      * Класс Polyline моделирует элемент <polyline> для отображения ломаных линий
      * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline
      */
-    class Polyline final : public Object
+    class Polyline final : public Object, public PathProps<Polyline>
     {
         std::vector<Point> points_;
         void RenderObject(const RenderContext &context) const override;
@@ -132,13 +260,13 @@ namespace svg
      * Класс Text моделирует элемент <text> для отображения текста
      * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
      */
-    class Text final : public Object
+    class Text final : public Object, public PathProps<Text>
     {
         Point pos_ = {0.0, 0.0};
         Point offset_ = {0.0, 0.0};
         uint32_t font_size_ = 1;
-        std::string font_family_ = "";
-        std::string font_weight_ = "";
+        std::optional<std::string> font_family_;
+        std::optional<std::string> font_weight_;
         std::string data_ = "";
         void RenderObject(const RenderContext &context) const override;
 
