@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <string_view>
 
 namespace svg
 {
@@ -16,8 +17,8 @@ namespace svg
             : x(x), y(y)
         {
         }
-        double x = 0;
-        double y = 0;
+        double x = 0.0;
+        double y = 0.0;
     };
 
     /*
@@ -112,7 +113,7 @@ namespace svg
     {
         Point pos_ = {0.0, 0.0};
         Point offset_ = {0.0, 0.0};
-        uint32_t size_ = 1;
+        uint32_t font_size_ = 1;
         std::string font_family_ = "";
         std::string font_weight_ = "";
         std::string data_ = "";
@@ -135,15 +136,11 @@ namespace svg
 
     public:
         Document() = default;
-        template <typename ObjType>
-        void AddPtr(std::unique_ptr<ObjType> &&obj)
-        {
-            objects_.emplace_back(std::move(obj));
-        }
+        void AddPtr(std::unique_ptr<Object> &&obj);
         template <typename ObjType>
         void Add(ObjType obj)
         {
-            objects_.emplace_back(std::make_unique<ObjType>(std::move(obj)));
+            AddPtr(std::make_unique<ObjType>(std::move(obj)));
         }
         void Render(std::ostream &out) const;
     };
@@ -152,5 +149,7 @@ namespace svg
 
 namespace util
 {
-    std::string SwapSpecSymbols(const std::string &data_);
+    void SwapSpecSymbols(std::ostream &out, std::string_view data_);
+    template <typename Value>
+    void RenderProperties(std::ostream &out, std::string_view propname, Value propvalue);
 }

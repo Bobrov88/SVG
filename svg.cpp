@@ -30,10 +30,13 @@ namespace svg
 
     void Circle::RenderObject(const RenderContext &context) const
     {
+        using util::RenderProperties;
         auto &out = context.out;
-        out << "<circle cx=\""sv << center_.x << "\" cy=\""sv << center_.y << "\" "sv;
-        out << "r=\""sv << radius_ << "\" "sv;
-        out << "/>"sv;
+        out << "<circle"sv;
+        RenderProperties(out, "cx"sv, center_.x);
+        RenderProperties(out, "cy"sv, center_.y);
+        RenderProperties(out, "r"sv, radius_);
+        out << "/> "sv;
     }
 
     Circle::~Circle()
@@ -60,11 +63,11 @@ namespace svg
         for (const auto &point : points_)
         {
             if (isNotFirst)
-                out << " ";
+                out << " "sv;
             out << point.x << ","sv << point.y;
             isNotFirst = true;
         }
-        out << "\"/>"sv;
+        out << "\" />"sv;
     }
 
     // ---------- Text ------------------
@@ -81,7 +84,7 @@ namespace svg
     }
     Text &Text::SetFontSize(uint32_t size)
     {
-        size_ = size;
+        font_size_ = size;
         return *this;
     }
     Text &Text::SetFontFamily(std::string font_family)
@@ -101,10 +104,21 @@ namespace svg
     }
     void Text::RenderObject(const RenderContext &context) const
     {
+        using util::RenderProperties;
         auto &out = context.out;
-        out << "<text x=\"" << pos_.x << "\" y=\"" << pos_.y << "\" dx=\"" << offset_.x << "\" dy=\"" << offset_.y << "\" ";
-        out << "font-size=\"" << size_ << "\" font-family=\"" << font_family_ << "\" font-weight=\"" << font_weight_ << "\">";
-        out << util::SwapSpecSymbols(data_) << "</text>";
+        out << "<text"sv;
+        RenderProperties(out, "x"sv, pos_.x);
+        RenderProperties(out, "y"sv, pos_.y);
+        RenderProperties(out, "dx"sv, offset_.x);
+        RenderProperties(out, "dy"sv, offset_.y);
+        RenderProperties(out, "font-size"sv, font_size_);
+        if (!font_family_.empty())
+            RenderProperties(out, "font-family"sv, font_family_);
+        if (!font_weight_.empty())
+            RenderProperties(out, "font-weight"sv, font_weight_);
+        out << ">"sv;
+        util::SwapSpecSymbols(out, data_);
+        out << "</text>"sv;
     }
 
     Text::~Text()
@@ -113,47 +127,64 @@ namespace svg
 
     // ---------- Document ------------------
 
+    void Document::AddPtr(std::unique_ptr<Object> &&obj)
+    {
+        objects_.push_back(std::move(obj));
+    }
+
     void Document::Render(std::ostream &out) const
     {
-        RenderContext ctx(out);
+        out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"sv << std::endl;
+        out << "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">"sv << std::endl;
+        RenderContext ctx{out, 2, 2};
         for (const auto &obj : objects_)
         {
             obj->Render(ctx);
         }
+        out << "</svg>"sv;
     }
 
 } // namespace svg
 
 namespace util
 {
-    std::string SwapSpecSymbols(const std::string &data_)
+    void SwapSpecSymbols(std::ostream &out, std::string_view data_)
     {
-        std::string result;
-        result.reserve(data_.size() * 1.5);
-        for (const char c : data_)
+        using namespace std::string_view_literals;
+        for (char c : data_)
         {
             switch (c)
             {
             case '&':
-                result.append("&amp;");
+                out << "&amp;"sv;
                 break;
             case '<':
-                result.append("&lt;");
+                out << "&lt;"sv;
                 break;
             case '>':
-                result.append("&gt;");
+                out << "&gt;"sv;
                 break;
             case '\"':
-                result.append("&quot;");
+                out << "&quot;"sv;
                 break;
             case '\'':
-                result.append("&apos;");
+                out << "&apos;"sv;
                 break;
             default:
-                result.push_back(c);
+                out << c;
                 break;
             }
         }
-        return result;
+    }
+
+    template <typename Value>
+    void RenderProperties(std::ostream &out, std::string_view propname, Value propvalue)
+    {
+        using namespace std::literals;
+        out << " "sv;
+        out << propname;
+        out << "=\""sv;
+        out << propvalue;
+        out << "\""sv;
     }
 }
