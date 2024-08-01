@@ -1,5 +1,6 @@
+#define _USE_MATH_DEFINES
 #pragma once
-
+#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -9,6 +10,28 @@
 
 namespace svg
 {
+    class Drawable;
+    class ObjectContainer;
+    class Object;
+
+    class Drawable
+    {
+    public:
+        virtual void Draw(ObjectContainer &container) const = 0;
+        virtual ~Drawable() = default;
+    };
+
+    class ObjectContainer
+    {
+    public:
+        template <typename ObjType>
+        void Add(ObjType obj)
+        {
+            AddPtr(std::make_unique<ObjType>(std::move(obj)));
+        }
+        virtual void AddPtr(std::unique_ptr<Object> &&) = 0;
+        virtual ~ObjectContainer() = default;
+    };
 
     struct Point
     {
@@ -130,26 +153,77 @@ namespace svg
         ~Text() override;
     };
 
-    class Document
+    class Document : public ObjectContainer
     {
         std::vector<std::unique_ptr<Object>> objects_;
 
     public:
         Document() = default;
-        void AddPtr(std::unique_ptr<Object> &&obj);
-        template <typename ObjType>
-        void Add(ObjType obj)
-        {
-            AddPtr(std::make_unique<ObjType>(std::move(obj)));
-        }
+        void AddPtr(std::unique_ptr<Object> &&obj) override;
         void Render(std::ostream &out) const;
+        ~Document() override;
     };
 
 } // namespace svg
+
+namespace shapes
+{
+    class Triangle : public svg::Drawable
+    {
+        svg::Point p1_ = {0.0, 0.0};
+        svg::Point p2_ = {0.0, 0.0};
+        svg::Point p3_ = {0.0, 0.0};
+
+    public:
+        Triangle(svg::Point p1, svg::Point p2, svg::Point p3);
+        void Draw(svg::ObjectContainer &container) const override;
+        ~Triangle() override;
+    };
+
+    class Star : public svg::Drawable
+    {
+        svg::Point center_ = {0.0, 0.0};
+        double outer_radius_ = 0.0;
+        double inner_radius_ = 0.0;
+        int num_rays_ = 0;
+
+    public:
+        Star(svg::Point center, double outer_radius, double inner_radius, int num_rays);
+        void Draw(svg::ObjectContainer &container) const override;
+        ~Star() override;
+    };
+
+    class Snowman : public svg::Drawable
+    {
+        svg::Point head_center_ = {0.0, 0.0};
+        double head_radius_ = 0.0;
+
+    public:
+        Snowman(svg::Point head_center, double head_radius);
+        void Draw(svg::ObjectContainer &container) const override;
+        ~Snowman() override;
+    };
+}
+
+template <typename DrawableIterator>
+void DrawPicture(DrawableIterator begin, DrawableIterator end, svg::ObjectContainer &target)
+{
+    for (auto it = begin; it != end; ++it)
+    {
+        (*it)->Draw(target);
+    }
+}
+
+template <typename Container>
+void DrawPicture(Container &container, svg::ObjectContainer &target)
+{
+    DrawPicture(std::begin(container), std::end(container), target);
+}
 
 namespace util
 {
     void SwapSpecSymbols(std::ostream &out, std::string_view data_);
     template <typename Value>
     void RenderProperties(std::ostream &out, std::string_view propname, Value propvalue);
+    svg::Polyline CreateStar(svg::Point center, double outer_rad, double inner_rad, int num_rays);
 }

@@ -1,5 +1,30 @@
 #include "svg.h"
 
+namespace shapes
+{
+    Triangle::Triangle(svg::Point p1, svg::Point p2, svg::Point p3) : p1_(p1), p2_(p2), p3_(p3) {}
+    void Triangle::Draw(svg::ObjectContainer &container) const
+    {
+        container.Add(svg::Polyline().AddPoint(p1_).AddPoint(p2_).AddPoint(p3_).AddPoint(p1_));
+    }
+    Triangle::~Triangle() {}
+
+    Star::Star(svg::Point center, double outer_radius, double inner_radius, int num_rays) : center_(center), outer_radius_(outer_radius), inner_radius_(inner_radius), num_rays_(num_rays) {}
+    void Star::Draw(svg::ObjectContainer &container) const
+    {
+        container.Add(util::CreateStar(center_, outer_radius_, inner_radius_, num_rays_));
+    }
+    Star::~Star() {}
+
+    Snowman::Snowman(svg::Point head_center, double head_radius) : head_center_(head_center), head_radius_(head_radius) {}
+    void Snowman::Draw(svg::ObjectContainer &container) const {
+        container.Add(svg::Circle().SetCenter({head_center_.x, head_center_.y+5*head_radius_}).SetRadius(head_radius_*2));
+        container.Add(svg::Circle().SetCenter({head_center_.x, head_center_.y+2*head_radius_}).SetRadius(head_radius_*1.5));
+        container.Add(svg::Circle().SetCenter({head_center_.x, head_center_.y}).SetRadius(head_radius_));
+    }
+    Snowman::~Snowman() {}
+}
+
 namespace svg
 {
     using namespace std::literals;
@@ -7,10 +32,7 @@ namespace svg
     void Object::Render(const RenderContext &context) const
     {
         context.RenderIndent();
-
-        // Делегируем вывод тега своим подклассам
         RenderObject(context);
-
         context.out << std::endl;
     }
 
@@ -36,7 +58,7 @@ namespace svg
         RenderProperties(out, "cx"sv, center_.x);
         RenderProperties(out, "cy"sv, center_.y);
         RenderProperties(out, "r"sv, radius_);
-        out << "/> "sv;
+        out << " />"sv;
     }
 
     Circle::~Circle()
@@ -143,6 +165,7 @@ namespace svg
         }
         out << "</svg>"sv;
     }
+    Document::~Document() {}
 
 } // namespace svg
 
@@ -186,5 +209,22 @@ namespace util
         out << "=\""sv;
         out << propvalue;
         out << "\""sv;
+    }
+
+    svg::Polyline CreateStar(svg::Point center, double outer_rad, double inner_rad, int num_rays)
+    {
+        svg::Polyline polyline;
+        for (int i = 0; i <= num_rays; ++i)
+        {
+            double angle = 2 * M_PI * (i % num_rays) / num_rays;
+            polyline.AddPoint({center.x + outer_rad * sin(angle), center.y - outer_rad * cos(angle)});
+            if (i == num_rays)
+            {
+                break;
+            }
+            angle += M_PI / num_rays;
+            polyline.AddPoint({center.x + inner_rad * sin(angle), center.y - inner_rad * cos(angle)});
+        }
+        return polyline;
     }
 }
