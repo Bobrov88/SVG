@@ -14,33 +14,74 @@ inline const Color NoneColor{"none"};
 
 namespace svg
 {
+    namespace render
+    {
+        inline void Render(std::ostream &out, std::string_view data_)
+        {
+            out << data_;
+        }
+
+        template <typename Value>
+        inline void Render(std::ostream &out, std::string_view propname, Value propvalue)
+        {
+            using namespace std::literals;
+            out << " "sv << propname << "=\""sv << propvalue << "\""sv;
+        }
+
+        inline void ReplaceSymbols(std::ostream &out, std::string_view data_)
+        {
+            using namespace std::string_view_literals;
+            for (auto c : data_)
+            {
+                switch (c)
+                {
+                case '&':
+                    out << "&amp;"sv;
+                    break;
+                case '<':
+                    out << "&lt;"sv;
+                    break;
+                case '>':
+                    out << "&gt;"sv;
+                    break;
+                case '\"':
+                    out << "&quot;"sv;
+                    break;
+                case '\'':
+                    out << "&apos;"sv;
+                    break;
+                default:
+                    out << c;
+                    break;
+                }
+            }
+        }
+
+        template <typename Value>
+        inline void RenderOptionalProperties(std::ostream &out, std::string_view propname, Value propvalue)
+        {
+            if (propvalue)
+            {
+                Render(out, propname, *propvalue);
+            }
+        }
+
+        template <typename Value>
+        inline void RenderProperties(std::ostream &out, std::string_view propname, Value propvalue)
+        {
+            if (propvalue)
+            {
+                Render(out, propname, propvalue);
+            }
+        }
+    }
+
     enum class StrokeLineCap
     {
         BUTT,
         ROUND,
         SQUARE
     };
-
-    std::ostream &operator<<(std::ostream &os, const StrokeLineCap &line_cap)
-    {
-        using namespace std::string_view_literals;
-        switch (line_cap)
-        {
-        case StrokeLineCap::BUTT:
-            os << "butt"sv;
-            break;
-        case StrokeLineCap::ROUND:
-            os << "round"sv;
-            break;
-        case StrokeLineCap::SQUARE:
-            os << "square"sv;
-            break;
-        default:
-            os << ""sv;
-            break;
-        }
-        return os;
-    }
 
     enum class StrokeLineJoin
     {
@@ -50,33 +91,6 @@ namespace svg
         MITER_CLIP,
         ROUND
     };
-
-    std::ostream &operator<<(std::ostream &os, const StrokeLineJoin &line_cap)
-    {
-        using namespace std::string_view_literals;
-        switch (line_cap)
-        {
-        case StrokeLineJoin::ARCS:
-            os << "arcs"sv;
-            break;
-        case StrokeLineJoin::BEVEL:
-            os << "bevel"sv;
-            break;
-        case StrokeLineJoin::MITER:
-            os << "miter"sv;
-            break;
-        case StrokeLineJoin::MITER_CLIP:
-            os << "miter_clip"sv;
-            break;
-        case StrokeLineJoin::ROUND:
-            os << "round"sv;
-            break;
-        default:
-            os << ""sv;
-            break;
-        }
-        return os;
-    }
 
     class Drawable;
     class ObjectContainer;
@@ -154,8 +168,8 @@ namespace svg
         std::optional<Color> fill_color_;
         std::optional<Color> stroke_color_;
         std::optional<double> stroke_width_;
-        std::optional<StrokeLineCap> stroke_line_cap;
-        std::optional<StrokeLineJoin> stroke_line_join;
+        std::optional<StrokeLineCap> stroke_line_cap_;
+        std::optional<StrokeLineJoin> stroke_line_join_;
         Owner &AsOwner()
         {
             return static_cast<Owner &>(*this);
@@ -174,7 +188,7 @@ namespace svg
         }
         Owner &SetStrokeWidth(double width)
         {
-            stroke_width = width;
+            stroke_width_ = width;
             return AsOwner();
         }
         Owner &SetStrokeLineCap(StrokeLineCap line_cap)
@@ -184,25 +198,21 @@ namespace svg
         }
         Owner &SetsTrokeLineJoin(StrokeLineJoin line_join)
         {
-            stroke_line_join = line_join;
+            stroke_line_join_ = line_join;
             return AsOwner();
         }
         virtual ~PathProps() = default;
 
     protected:
-        void RenderAttr(std::ostream &os) const
+        void RenderAttr(std::ostream &out) const
         {
             using namespace std::string_view_literals;
-            if (fill_color_)
-                os << " fill=\""sv << *fill_color_ << "\"";
-            if (stroke_color_)
-                os << " stroke=\""sv << *stroke_color_ << "\"";
-            if (stroke_width_)
-                os << " stroke-width=\"" << *stroke_width_ << "\"";
-            if (stroke_line_cap)
-                os << " stroke-linecap=\"" << *stroke_line_cap << "\"";
-            if (stroke_line_join)
-                os << " stroke-linejoin=\"" << *stroke_line_join << "\"";
+            using render::RenderOptionalProperties;
+            RenderOptionalProperties(out, "fill"sv, fill_color_);
+            RenderOptionalProperties(out, "stroke"sv, stroke_color_);
+            RenderOptionalProperties(out, "stroke-width"sv, stroke_width_);
+            RenderOptionalProperties(out, "stroke-linecap"sv, stroke_line_cap_);
+            RenderOptionalProperties(out, "stroke-linejoin"sv, stroke_line_join_);
         }
     };
 
@@ -294,45 +304,6 @@ namespace svg
 
 } // namespace svg
 
-namespace shapes
-{
-    class Triangle : public svg::Drawable
-    {
-        svg::Point p1_ = {0.0, 0.0};
-        svg::Point p2_ = {0.0, 0.0};
-        svg::Point p3_ = {0.0, 0.0};
-
-    public:
-        Triangle(svg::Point p1, svg::Point p2, svg::Point p3);
-        void Draw(svg::ObjectContainer &container) const override;
-        ~Triangle() override;
-    };
-
-    class Star : public svg::Drawable
-    {
-        svg::Point center_ = {0.0, 0.0};
-        double outer_radius_ = 0.0;
-        double inner_radius_ = 0.0;
-        int num_rays_ = 0;
-
-    public:
-        Star(svg::Point center, double outer_radius, double inner_radius, int num_rays);
-        void Draw(svg::ObjectContainer &container) const override;
-        ~Star() override;
-    };
-
-    class Snowman : public svg::Drawable
-    {
-        svg::Point head_center_ = {0.0, 0.0};
-        double head_radius_ = 0.0;
-
-    public:
-        Snowman(svg::Point head_center, double head_radius);
-        void Draw(svg::ObjectContainer &container) const override;
-        ~Snowman() override;
-    };
-}
-
 template <typename DrawableIterator>
 void DrawPicture(DrawableIterator begin, DrawableIterator end, svg::ObjectContainer &target)
 {
@@ -346,12 +317,4 @@ template <typename Container>
 void DrawPicture(Container &container, svg::ObjectContainer &target)
 {
     DrawPicture(std::begin(container), std::end(container), target);
-}
-
-namespace util
-{
-    void SwapSpecSymbols(std::ostream &out, std::string_view data_);
-    template <typename Value>
-    void RenderProperties(std::ostream &out, std::string_view propname, Value propvalue);
-    svg::Polyline CreateStar(svg::Point center, double outer_rad, double inner_rad, int num_rays);
 }
