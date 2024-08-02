@@ -4,7 +4,7 @@ namespace svg
 {
     using namespace std::literals;
 
-    std::ostream &operator<<(std::ostream &os, const StrokeLineCap &line_cap)
+    std::ostream &operator<<(std::ostream &os, StrokeLineCap line_cap)
     {
         using namespace std::string_view_literals;
         switch (line_cap)
@@ -18,17 +18,14 @@ namespace svg
         case StrokeLineCap::SQUARE:
             os << "square"sv;
             break;
-        default:
-            os << ""sv;
-            break;
         }
         return os;
     }
 
-    std::ostream &operator<<(std::ostream &os, const StrokeLineJoin &line_cap)
+    std::ostream &operator<<(std::ostream &os, StrokeLineJoin line_join)
     {
         using namespace std::string_view_literals;
-        switch (line_cap)
+        switch (line_join)
         {
         case StrokeLineJoin::ARCS:
             os << "arcs"sv;
@@ -40,13 +37,10 @@ namespace svg
             os << "miter"sv;
             break;
         case StrokeLineJoin::MITER_CLIP:
-            os << "miter_clip"sv;
+            os << "miter-clip"sv;
             break;
         case StrokeLineJoin::ROUND:
             os << "round"sv;
-            break;
-        default:
-            os << ""sv;
             break;
         }
         return os;

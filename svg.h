@@ -76,47 +76,6 @@ namespace svg
         }
     }
 
-    enum class StrokeLineCap
-    {
-        BUTT,
-        ROUND,
-        SQUARE
-    };
-
-    enum class StrokeLineJoin
-    {
-        ARCS,
-        BEVEL,
-        MITER,
-        MITER_CLIP,
-        ROUND
-    };
-
-    class Drawable;
-    class ObjectContainer;
-    class Object;
-    template <typename Owner>
-    class PathProps;
-
-    class Drawable
-    {
-    public:
-        virtual void Draw(ObjectContainer &container) const = 0;
-        virtual ~Drawable() = default;
-    };
-
-    class ObjectContainer
-    {
-    public:
-        template <typename ObjType>
-        void Add(ObjType obj)
-        {
-            AddPtr(std::make_unique<ObjType>(std::move(obj)));
-        }
-        virtual void AddPtr(std::unique_ptr<Object> &&) = 0;
-        virtual ~ObjectContainer() = default;
-    };
-
     struct Point
     {
         Point() = default;
@@ -161,6 +120,35 @@ namespace svg
         int indent_step = 0;
         int indent = 0;
     };
+
+    class Object
+    {
+    public:
+        void Render(const RenderContext &context) const;
+        virtual ~Object() = default;
+
+    private:
+        virtual void RenderObject(const RenderContext &context) const = 0;
+    };
+
+    enum class StrokeLineCap
+    {
+        BUTT,
+        ROUND,
+        SQUARE
+    };
+
+    enum class StrokeLineJoin
+    {
+        ARCS,
+        BEVEL,
+        MITER,
+        MITER_CLIP,
+        ROUND,
+    };
+
+    std::ostream &operator<<(std::ostream &os, StrokeLineCap line_cap);
+    std::ostream &operator<<(std::ostream &os, StrokeLineJoin line_join);
 
     template <typename Owner>
     class PathProps
@@ -216,25 +204,6 @@ namespace svg
         }
     };
 
-    /*
-     * Абстрактный базовый класс Object служит для унифицированного хранения
-     * конкретных тегов SVG-документа
-     * Реализует паттерн "Шаблонный метод" для вывода содержимого тега
-     */
-    class Object
-    {
-    public:
-        void Render(const RenderContext &context) const;
-        virtual ~Object() = default;
-
-    private:
-        virtual void RenderObject(const RenderContext &context) const = 0;
-    };
-
-    /*
-     * Класс Circle моделирует элемент <circle> для отображения круга
-     * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/circle
-     */
     class Circle final : public Object, public PathProps<Circle>
     {
         void RenderObject(const RenderContext &context) const override;
@@ -248,10 +217,6 @@ namespace svg
         ~Circle() override;
     };
 
-    /*
-     * Класс Polyline моделирует элемент <polyline> для отображения ломаных линий
-     * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/polyline
-     */
     class Polyline final : public Object, public PathProps<Polyline>
     {
         std::vector<Point> points_;
@@ -261,15 +226,8 @@ namespace svg
         Polyline() = default;
         Polyline &AddPoint(Point point);
         ~Polyline() override;
-        /*
-         * Прочие методы и данные, необходимые для реализации элемента <polyline>
-         */
     };
 
-    /*
-     * Класс Text моделирует элемент <text> для отображения текста
-     * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text
-     */
     class Text final : public Object, public PathProps<Text>
     {
         Point pos_ = {0.0, 0.0};
@@ -291,6 +249,25 @@ namespace svg
         ~Text() override;
     };
 
+    class ObjectContainer
+    {
+    public:
+        template <typename ObjType>
+        void Add(ObjType obj)
+        {
+            AddPtr(std::make_unique<ObjType>(std::move(obj)));
+        }
+        virtual void AddPtr(std::unique_ptr<Object> &&) = 0;
+        virtual ~ObjectContainer() = default;
+    };
+
+    class Drawable
+    {
+    public:
+        virtual void Draw(ObjectContainer &container) const = 0;
+        virtual ~Drawable() = default;
+    };
+
     class Document : public ObjectContainer
     {
         std::vector<std::unique_ptr<Object>> objects_;
@@ -303,18 +280,3 @@ namespace svg
     };
 
 } // namespace svg
-
-template <typename DrawableIterator>
-void DrawPicture(DrawableIterator begin, DrawableIterator end, svg::ObjectContainer &target)
-{
-    for (auto it = begin; it != end; ++it)
-    {
-        (*it)->Draw(target);
-    }
-}
-
-template <typename Container>
-void DrawPicture(Container &container, svg::ObjectContainer &target)
-{
-    DrawPicture(std::begin(container), std::end(container), target);
-}

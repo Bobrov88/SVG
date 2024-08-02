@@ -1,24 +1,24 @@
 #include "svg.h"
 
+svg::Polyline CreateStar(svg::Point center, double outer_rad, double inner_rad, int num_rays)
+{
+    svg::Polyline polyline;
+    for (int i = 0; i <= num_rays; ++i)
+    {
+        double angle = 2 * M_PI * (i % num_rays) / num_rays;
+        polyline.AddPoint({center.x + outer_rad * sin(angle), center.y - outer_rad * cos(angle)});
+        if (i == num_rays)
+        {
+            break;
+        }
+        angle += M_PI / num_rays;
+        polyline.AddPoint({center.x + inner_rad * sin(angle), center.y - inner_rad * cos(angle)});
+    }
+    return polyline;
+}
+
 namespace shapes
 {
-    svg::Polyline CreateStar(svg::Point center, double outer_rad, double inner_rad, int num_rays)
-    {
-        svg::Polyline polyline;
-        for (int i = 0; i <= num_rays; ++i)
-        {
-            double angle = 2 * M_PI * (i % num_rays) / num_rays;
-            polyline.AddPoint({center.x + outer_rad * sin(angle), center.y - outer_rad * cos(angle)});
-            if (i == num_rays)
-            {
-                break;
-            }
-            angle += M_PI / num_rays;
-            polyline.AddPoint({center.x + inner_rad * sin(angle), center.y - inner_rad * cos(angle)});
-        }
-        return polyline;
-    }
-
     class Triangle : public svg::Drawable
     {
         svg::Point p1_ = {0.0, 0.0};
@@ -65,6 +65,22 @@ namespace shapes
         }
         ~Snowman() override {}
     };
+}
+
+template <typename DrawableIterator>
+void DrawPicture(DrawableIterator begin, DrawableIterator end, svg::ObjectContainer &target)
+{
+    for (auto it = begin; it != end; ++it)
+    {
+        (*it)->Draw(target);
+    }
+}
+
+template <typename Container>
+void DrawPicture(const Container &container, svg::ObjectContainer &target)
+{
+    using namespace std;
+    DrawPicture(begin(container), end(container), target);
 }
 
 int main()
