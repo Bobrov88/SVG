@@ -1,6 +1,4 @@
-#define _USE_MATH_DEFINES
 #pragma once
-#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -8,9 +6,6 @@
 #include <vector>
 #include <string_view>
 #include <optional>
-
-using Color = std::string;
-inline const Color NoneColor{"none"};
 
 namespace svg
 {
@@ -87,10 +82,9 @@ namespace svg
         double y = 0.0;
     };
 
-    /*
-     * Вспомогательная структура, хранящая контекст для вывода SVG-документа с отступами.
-     * Хранит ссылку на поток вывода, текущее значение и шаг отступа при выводе элемента
-     */
+    using Color = std::string;
+    inline const Color NoneColor{"none"};
+
     struct RenderContext
     {
         RenderContext(std::ostream &out)
@@ -124,11 +118,11 @@ namespace svg
     class Object
     {
     public:
-        void Render(const RenderContext &context) const;
+        void Render(const RenderContext& context) const;
         virtual ~Object() = default;
 
     private:
-        virtual void RenderObject(const RenderContext &context) const = 0;
+        virtual void RenderObject(const RenderContext& context) const = 0;
     };
 
     enum class StrokeLineCap
@@ -137,6 +131,7 @@ namespace svg
         ROUND,
         SQUARE
     };
+
 
     enum class StrokeLineJoin
     {
@@ -184,14 +179,14 @@ namespace svg
             stroke_line_cap_ = line_cap;
             return AsOwner();
         }
-        Owner &SetsTrokeLineJoin(StrokeLineJoin line_join)
+        Owner &SetStrokeLineJoin(StrokeLineJoin line_join)
         {
             stroke_line_join_ = line_join;
             return AsOwner();
         }
-        virtual ~PathProps() = default;
 
     protected:
+        virtual ~PathProps() = default;
         void RenderAttr(std::ostream &out) const
         {
             using namespace std::string_view_literals;
@@ -204,31 +199,27 @@ namespace svg
         }
     };
 
-    class Circle final : public Object, public PathProps<Circle>
+    class Circle : public Object, public PathProps<Circle>
     {
         void RenderObject(const RenderContext &context) const override;
-        Point center_ = {0.0, 0.0};
+        Point center_;
         double radius_ = 1.0;
 
     public:
-        Circle() = default;
         Circle &SetCenter(Point center);
         Circle &SetRadius(double radius);
-        ~Circle() override;
     };
 
-    class Polyline final : public Object, public PathProps<Polyline>
+    class Polyline : public Object, public PathProps<Polyline>
     {
         std::vector<Point> points_;
         void RenderObject(const RenderContext &context) const override;
 
     public:
-        Polyline() = default;
         Polyline &AddPoint(Point point);
-        ~Polyline() override;
     };
 
-    class Text final : public Object, public PathProps<Text>
+    class Text : public Object, public PathProps<Text>
     {
         Point pos_ = {0.0, 0.0};
         Point offset_ = {0.0, 0.0};
@@ -239,14 +230,12 @@ namespace svg
         void RenderObject(const RenderContext &context) const override;
 
     public:
-        Text() = default;
         Text &SetPosition(Point pos);
         Text &SetOffset(Point offset);
         Text &SetFontSize(uint32_t size);
         Text &SetFontFamily(std::string font_family);
         Text &SetFontWeight(std::string font_weight);
         Text &SetData(std::string data);
-        ~Text() override;
     };
 
     class ObjectContainer
@@ -258,7 +247,8 @@ namespace svg
             AddPtr(std::make_unique<ObjType>(std::move(obj)));
         }
         virtual void AddPtr(std::unique_ptr<Object> &&) = 0;
-        virtual ~ObjectContainer() = default;
+        protected:
+        ~ObjectContainer() = default;
     };
 
     class Drawable
@@ -273,10 +263,8 @@ namespace svg
         std::vector<std::unique_ptr<Object>> objects_;
 
     public:
-        Document() = default;
         void AddPtr(std::unique_ptr<Object> &&obj) override;
         void Render(std::ostream &out) const;
-        ~Document() override;
     };
 
 } // namespace svg

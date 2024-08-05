@@ -72,16 +72,12 @@ namespace svg
         using render::RenderProperties;
         using namespace std::literals;
         auto &out = context.out;
-        out << "<circle"sv;
+        out << "<circle "sv;
         RenderProperties(out, "cx"sv, center_.x);
         RenderProperties(out, "cy"sv, center_.y);
         RenderProperties(out, "r"sv, radius_);
         RenderAttr(out);
         out << " />"sv;
-    }
-
-    Circle::~Circle()
-    {
     }
 
     // ---------- Polyline ------------------
@@ -90,10 +86,6 @@ namespace svg
     {
         points_.push_back(std::move(point));
         return *this;
-    }
-
-    Polyline::~Polyline()
-    {
     }
 
     void Polyline::RenderObject(const RenderContext &context) const
@@ -151,6 +143,7 @@ namespace svg
         using render::RenderProperties, render::RenderOptionalProperties;
         auto &out = context.out;
         out << "<text"sv;
+        RenderAttr(out);
         RenderProperties(out, "x"sv, pos_.x);
         RenderProperties(out, "y"sv, pos_.y);
         RenderProperties(out, "dx"sv, offset_.x);
@@ -158,14 +151,9 @@ namespace svg
         RenderProperties(out, "font-size"sv, font_size_);
         RenderOptionalProperties(out, "font-family"sv, font_family_);
         RenderOptionalProperties(out, "font-weight"sv, font_weight_);
-        RenderAttr(out);
         out << ">"sv;
         render::ReplaceSymbols(out, data_);
         out << "</text>"sv;
-    }
-
-    Text::~Text()
-    {
     }
 
     // ---------- Document ------------------
@@ -186,6 +174,5 @@ namespace svg
         }
         out << "</svg>"sv;
     }
-    Document::~Document() {}
 
 } // namespace svg
